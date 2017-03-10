@@ -52,6 +52,7 @@ Public Class Form1
         'Dim myArray = ListBox1.Items.OfType(Of String)().ToArray()
         'Dim nnn = Array.IndexOf(myArray, "Salary")
         'vblf was at the beginning of each line using newline or vbcr or whatever, which affected searches
+        'dsfdfs
     End Sub
 
 End Class
