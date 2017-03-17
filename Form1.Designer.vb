@@ -35,7 +35,6 @@ Partial Class Form1
         Me.tabPage1 = New System.Windows.Forms.TabPage()
         Me.Label3 = New System.Windows.Forms.Label()
         Me.Button1 = New System.Windows.Forms.Button()
-        Me.WebBrowser1 = New System.Windows.Forms.WebBrowser()
         Me.tabControl1.SuspendLayout()
         Me.tabPage2.SuspendLayout()
         Me.SuspendLayout()
@@ -174,21 +173,11 @@ Partial Class Form1
         Me.Button1.Text = "Button1"
         Me.Button1.UseVisualStyleBackColor = True
         '
-        'WebBrowser1
-        '
-        Me.WebBrowser1.AllowWebBrowserDrop = False
-        Me.WebBrowser1.Location = New System.Drawing.Point(336, 207)
-        Me.WebBrowser1.MinimumSize = New System.Drawing.Size(20, 20)
-        Me.WebBrowser1.Name = "WebBrowser1"
-        Me.WebBrowser1.Size = New System.Drawing.Size(427, 347)
-        Me.WebBrowser1.TabIndex = 11
-        '
         'Form1
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.ClientSize = New System.Drawing.Size(1360, 670)
-        Me.Controls.Add(Me.WebBrowser1)
         Me.Controls.Add(Me.Button1)
         Me.Controls.Add(Me.Label3)
         Me.Controls.Add(Me.tabControl1)
@@ -215,5 +204,4 @@ Partial Class Form1
     Private WithEvents Label5 As Label
     Friend WithEvents Label3 As Label
     Friend WithEvents Button1 As Button
-    Friend WithEvents WebBrowser1 As WebBrowser
 End Class

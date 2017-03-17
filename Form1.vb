@@ -9,6 +9,7 @@ Imports AngleSharp
 Imports AngleSharp.Parser.Html
 Imports System.IO
 Imports AngleSharp.Dom
+Imports AngleSharp.Dom.Html
 
 Public Class Form1
     'Dim MailContactInfo As String
@@ -82,7 +83,7 @@ Public Class Form1
 
                         End Select
                     Next
-                    'dudette.rows(1).cells(1).innerhtml.trim() 'the actualy text not html, outerhtml is with html
+
 
                 End If
             Next
@@ -118,11 +119,11 @@ Public Class Form1
         Console.WriteLine("Serializing the document again:")
         Console.WriteLine(document.DocumentElement.OuterHtml)
 
-        'p.ToHtml(writer, mark)
-        WebBrowser1.DocumentText = document.DocumentElement.OuterHtml 'document.Body.OuterHtml
+
+        ' WebBrowser1.DocumentText = document.DocumentElement.OuterHtml 'document.Body.OuterHtml
     End Sub
     Private Sub ProcessListBox()
-        ipBX.Text = ""
+
         Dim count As Integer = (ListBox1.Items.Count - 1)
         Dim words As String
         'Dim IP, Host, Domain, Users As New List(Of String)()
@@ -187,7 +188,7 @@ Public Class Form1
             'show list of IP's
         End If
         If SymFindDataStruc.IP.Count > 0 Then ipBX.Text = SymFindDataStruc.IP(0)
-        FindIPInfo()
+        FindIPInfo(testingIP)
     End Sub
     Private Sub ListBox1_DragEnter(sender As Object, e As DragEventArgs) Handles ListBox1.DragEnter
         e.Effect = DragDropEffects.All
@@ -205,30 +206,104 @@ Public Class Form1
         End If
     End Sub
     Private Sub ProcessEmail(theEmail As Outlook.MailItem)
+        SymFindDataStruc.IP = New List(Of String)()
+        SymFindDataStruc.Host = New List(Of String)()
+        SymFindDataStruc.Domain = New List(Of String)()
+        SymFindDataStruc.Users = New List(Of String)()
         Dim app As Outlook.Application = New Outlook.Application()
         'Dim myNamespace As Outlook.NameSpace = app.GetNamespace("MAPI")
         'Dim test = myNamespace.GetDefaultFolder(OlDefaultFolders.olFolderDrafts)
         Dim config = New Configuration().WithCss()
-        Dim options As New HtmlParserOptions
-
-
-
+        'Dim options As New HtmlParserOptions
         Dim parser = New HtmlParser(config)
         '.Parse().QuerySelectorAll("img").Css("width", "100%")
-
 
         Dim myMailItem As Outlook.MailItem = app.CreateItem(OlItemType.olMailItem)
         myMailItem.BodyFormat = OlBodyFormat.olFormatHTML
         myMailItem.Attachments.Add(theEmail)
         myMailItem.To = "davi2td@gmail.com"
+        myMailItem.Subject = theEmail.Subject
         ' myMailItem.SendUsingAccount("davi2td@gmail.com") 'see https://msdn.microsoft.com/en-us/library/office/ff869311.aspx
         ' Dim doc As HtmlAgilityPack.HtmlDocument = New HtmlAgilityPack.HtmlDocument
         'Dim htmlStr As New StringBuilder
 
 
+        Dim testring As String = "<head><title>hi</title><body><table width='200' border='0'><tr><td bgcolor='#999999'>test</td></tr><tr><td bgcolor='#CC99FF'>test</td></tr></table></body></html>"
+        Dim myDoc = parser.Parse(theEmail.HTMLBody)
+        Dim myDoc2 = parser.Parse("")
 
-        Dim document = parser.Parse(theEmail.HTMLBody)
-        myMailItem.HTMLBody = " < h2 <> strong <> span style=""color:                #ff0000;"">This is test</span></strong></h2>"
+        Dim mydata = myDoc.GetElementsByClassName("mep")
+        Dim theIPs = myDoc.GetElementsByClassName("ip_blue") '(0).textcontent 
+        For Each ip In theIPs
+            If SymFindDataStruc.IP.Find(Function(x) x.Equals(ip.TextContent.Trim)) Is Nothing Then
+                SymFindDataStruc.IP.Add(ip.TextContent.Trim)
+            End If
+        Next
+        For Each myDataFields In mydata
+            For Each datatype In myDataFields.Children
+
+                If (TypeName(datatype) = "HtmlTableElement") Then
+                    Dim datarows As IHtmlTableElement = DirectCast(datatype, IHtmlTableElement)
+                    If datarows.Rows().Length > 1 Then
+                        For i = 0 To datarows.Rows(0).Cells.Length - 1
+
+                            Select Case datarows.Rows(0).Cells(i).InnerHtml.Trim()
+                                Case "Host Name"
+                                    If SymFindDataStruc.Host.Find(Function(x) x.Equals(datarows.Rows(1).Cells(i).InnerHtml.Trim())) Is Nothing Then
+                                        SymFindDataStruc.Host.Add(datarows.Rows(1).Cells(i).InnerHtml.Trim())
+                                    End If
+                                Case "Domain"
+                                    If SymFindDataStruc.Domain.Find(Function(x) x.Equals(datarows.Rows(1).Cells(i).InnerHtml.Trim())) Is Nothing Then
+                                        SymFindDataStruc.Domain.Add(datarows.Rows(1).Cells(i).InnerHtml.Trim())
+                                    End If
+                                Case "User(s)"
+                                    If SymFindDataStruc.Users.Find(Function(x) x.Equals(datarows.Rows(1).Cells(i).InnerHtml.Trim())) Is Nothing Then
+                                        SymFindDataStruc.Users.Add(datarows.Rows(1).Cells(i).InnerHtml.Trim())
+                                    End If
+
+                            End Select
+                        Next
+                    End If
+                End If
+            Next
+        Next
+        Dim test As Object
+        If SymFindDataStruc.IP.Count > 0 Then
+            test = FindIPAndcontactInfo(testingIP) 'SymFindDataStruc.IP(0))
+        End If
+        Dim p = myDoc2.CreateElement("p")
+        Dim p2 = myDoc2.CreateElement("p")
+        p.Id = "testy"
+
+        '{border: 2px solid black; background-color: blue;}")
+
+        p.TextContent = "This Is first text."
+        p.SetAttribute("style", "background-color:powderblue;")
+        'p.Style = "color: red;"
+        Console.WriteLine("Inserting another element In the body ...")
+        myDoc2.Body.AppendChild(p)
+        p.TextContent = "something else!."
+        myDoc2.Body.AppendChild(p)
+        Dim oNewP = myDoc2.CreateElement("p")
+        oNewP.Id = ("whatever")
+        Dim oText = myDoc2.CreateTextNode("www.java2s.com<br>")
+        myDoc2.Body.AppendChild(oText)
+        oText = myDoc2.CreateTextNode("sdfsdfdfsd")
+        myDoc2.Body.AppendChild(oText)
+
+        'Dim beforeMe = myDoc.GetElementsByTagName("p")(0)
+        'myDoc.Body.AppendChild(oNewP)
+        'listView1.Items.Add(String.Format("Host(s): {0}", String.Join(", ", SymFindDataStruc.Host)))
+        'listView1.Items.Add(String.Format("Ip(s): {0}", String.Join(", ", SymFindDataStruc.IP)))
+        'listView1.Items.Add(String.Format("User(s) {0}", String.Join(", ", SymFindDataStruc.Users)))
+        'If InStr(String.Join(", ", SymFindDataStruc.Users).ToLower, "system") > 0 Then
+        '    listView1.Items.Add("The associated user is 'system' which would indicate that the possible infection has elevated privileges.").ForeColor = Color.Red
+        '    'ObjectListView1.Items.Add("The associated user Is 'system' which would indicate that the possible infection has elevated privileges.").ForeColor = Color.Red
+        'End If
+        'listView1.Items.Add("Please let us know what findings are gathered and corrective action taken.")
+        'listView1.Items.Add("Regards,")
+
+        myMailItem.HTMLBody = myDoc2.DocumentElement.OuterHtml
         myMailItem.Save()
         Exit Sub
 
@@ -248,11 +323,42 @@ Public Class Form1
 
     End Sub
 
-    Private Sub FindIPInfo()
-        listView1.Items.Clear()
-        If Not testing And ipBX.Text = "" Then
+    Private Function FindIPAndcontactInfo(ipAddress As String) As MailInfoStruc
+        If Not testing And ipAddress = "" Then
             listView1.Items.Add("No IP to lookup found").ForeColor = Color.Red
-            Exit Sub
+            Return Nothing
+        End If
+        Dim excelApplication As New Excel.Application()
+        excelApplication.DisplayAlerts = False
+        Dim utils As Excel.Tools.CommonUtils = New Excel.Tools.CommonUtils(excelApplication)
+        Try
+            ' add a new workbook
+            Dim contactFile As String = My.Application.Info.DirectoryPath + "\" + Path.GetFileName("Contacts.xlsx")
+            Dim workBook As Excel.Workbook = excelApplication.Workbooks.Open(contactFile, vbNull, True)
+            Dim workSheet As Excel.Worksheet = workBook.Worksheets(1)
+            Dim ContactsSheet As Excel.Worksheet = workBook.Worksheets(2)
+            Dim ipfuncs As New ipFunctions
+            'Dim IptoFind As String = ipBX.Text
+            If testing Then ipAddress = testingIP
+
+            For Each cell As Excel.Range In workSheet.UsedRange.Columns(1).Cells
+                'Debug.Print(cell.Value+" "+cell.Offset(1,3).Value)
+                If ipfuncs.IpIsInSubnet(ipAddress, cell.Value + " " + cell.Offset(1, 3).Value) Then
+
+                    Return FindContactInfo(ContactsSheet, cell.Offset(1, 5).Value)
+                End If
+            Next
+        Catch
+            Return Nothing
+        End Try
+        Return Nothing
+    End Function
+
+    Private Function FindIPInfo(ipAddress As String) As Boolean
+        listView1.Items.Clear()
+        If Not testing And ipAddress = "" Then
+            listView1.Items.Add("No IP to lookup found").ForeColor = Color.Red
+            Return False
         End If
         Dim excelApplication As New Excel.Application()
         Try
@@ -289,12 +395,12 @@ Public Class Form1
                     listView1.Items.Add("sendTo:" & vbTab & MailContactInfoStruc.primeEmail)
                     listView1.Items.Add("CCTo:" & vbTab & MailContactInfoStruc.ccEmail)
                     listView1.Items.Add(MailContactInfoStruc.primeFirstName & ",")
-                    listView1.Items.Add("This Is to inform you of the below infection alerts from Symantec on:")
+                    listView1.Items.Add("This is to inform you of the below infection alerts from Symantec on:")
                     listView1.Items.Add(String.Format("Host(s): {0}", String.Join(", ", SymFindDataStruc.Host)))
                     listView1.Items.Add(String.Format("Ip(s): {0}", String.Join(", ", SymFindDataStruc.IP)))
                     listView1.Items.Add(String.Format("User(s) {0}", String.Join(", ", SymFindDataStruc.Users)))
                     If InStr(String.Join(", ", SymFindDataStruc.Users).ToLower, "system") > 0 Then
-                        listView1.Items.Add("The associated user Is 'system' which would indicate that the possible infection has elevated privileges.").ForeColor = Color.Red
+                        listView1.Items.Add("The associated user is 'system' which would indicate that the possible infection has elevated privileges.").ForeColor = Color.Red
                         'ObjectListView1.Items.Add("The associated user Is 'system' which would indicate that the possible infection has elevated privileges.").ForeColor = Color.Red
                     End If
                     listView1.Items.Add("Please let us know what findings are gathered and corrective action taken.")
@@ -307,7 +413,7 @@ Public Class Form1
                     header.Name = "col1"
                     listView1.Columns.Add(header)
 
-                    Exit Sub
+                    Return True
                 End If
             Next
 
@@ -324,7 +430,7 @@ Public Class Form1
             excelApplication.Quit()
             excelApplication.Dispose()
         End Try
-    End Sub
+    End Function
     Function FindContactInfo(theSheet As Excel.Worksheet, IndexStr As String) As MailInfoStruc
         Dim MailInfoStruc2 As New MailInfoStruc
         If IndexStr = "" Then Return Nothing
@@ -346,7 +452,7 @@ Public Class Form1
 
 
     Private Sub FindSBUbtn_Click(sender As Object, e As EventArgs) Handles FindSBUbtn.Click
-        FindIPInfo()
+        'FindIPInfo()
     End Sub
 
     Private Sub AddContextMenu()
