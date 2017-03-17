@@ -4,6 +4,11 @@ Imports NetOffice.OutlookApi.Enums
 Imports Outlook = NetOffice.OutlookApi
 Imports Excel = NetOffice.ExcelApi
 Imports NetOffice.ExcelApi.Enums
+Imports System.Text
+Imports AngleSharp
+Imports AngleSharp.Parser.Html
+Imports System.IO
+Imports AngleSharp.Dom
 
 Public Class Form1
     'Dim MailContactInfo As String
@@ -29,6 +34,93 @@ Public Class Form1
         Public SBU As String
         Public location As String
     End Structure
+    Private Sub Button1_Click(sender As Object, e As EventArgs) Handles Button1.Click
+        FirstExample()
+    End Sub
+    Private Sub FirstExample()
+        Dim config = New Configuration().WithCss()
+        Dim options As New HtmlParserOptions
+
+
+        Dim parser = New HtmlParser(config)
+        '.Parse().QuerySelectorAll("img").Css("width", "100%")
+
+        Dim myDoc
+        Using reader As StreamReader = File.OpenText("F:\MyVisualStudioProjects\TestDragDropOutlookMSG\test.html")
+            myDoc = parser.Parse(reader.ReadToEnd)
+        End Using
+        Dim mydata = myDoc.GetElementsByClassName("mep")
+        Dim theIPs = myDoc.GetElementsByClassName("ip_blue") '(0).textcontent   
+
+        SymFindDataStruc.IP = New List(Of String)()
+        SymFindDataStruc.Host = New List(Of String)()
+        SymFindDataStruc.Domain = New List(Of String)()
+        SymFindDataStruc.Users = New List(Of String)()
+        For Each ip In theIPs
+            If SymFindDataStruc.IP.Find(Function(x) x.Equals(ip.textcontent.Trim)) Is Nothing Then
+                SymFindDataStruc.IP.Add(ip.textcontent.Trim)
+            End If
+        Next
+        For Each myDataFields In mydata
+            For Each datarows In myDataFields.children
+                If (TypeName(datarows) = "HtmlTableElement" AndAlso datarows.rows().length > 1) Then
+                    For i = 0 To datarows.rows(0).cells.length - 1
+
+                        Select Case datarows.rows(0).cells(i).innerhtml.trim()
+                            Case "Host Name"
+                                If SymFindDataStruc.Host.Find(Function(x) x.Equals(datarows.rows(1).cells(i).innerhtml.trim())) Is Nothing Then
+                                    SymFindDataStruc.Host.Add(datarows.rows(1).cells(i).innerhtml.trim())
+                                End If
+                            Case "Domain"
+                                If SymFindDataStruc.Domain.Find(Function(x) x.Equals(datarows.rows(1).cells(i).innerhtml.trim())) Is Nothing Then
+                                    SymFindDataStruc.Domain.Add(datarows.rows(1).cells(i).innerhtml.trim())
+                                End If
+                            Case "User(s)"
+                                If SymFindDataStruc.Users.Find(Function(x) x.Equals(datarows.rows(1).cells(i).innerhtml.trim())) Is Nothing Then
+                                    SymFindDataStruc.Users.Add(datarows.rows(1).cells(i).innerhtml.trim())
+                                End If
+
+                        End Select
+                    Next
+                    'dudette.rows(1).cells(1).innerhtml.trim() 'the actualy text not html, outerhtml is with html
+
+                End If
+            Next
+        Next
+
+        Dim document = parser.Parse("<h1>Some example source</h1><p>This is a paragraph element")
+
+        'Do something with document like the following
+
+        Console.WriteLine("Serializing the (original) document:")
+        Console.WriteLine(document.DocumentElement.OuterHtml)
+        'sheet.innerHTML = "div {border: 2px solid black; background-color: blue;}"
+        Dim p = document.CreateElement("p")
+        Dim p2 = document.CreateElement("p")
+        p.Id = "testy"
+        '{border: 2px solid black; background-color: blue;}")
+
+        p.TextContent = "This Is first text."
+        p.SetAttribute("style", "background-color:powderblue;")
+        'p.Style = "color: red;"
+        Console.WriteLine("Inserting another element In the body ...")
+        document.Body.AppendChild(p)
+
+        Dim oNewP = document.CreateElement("p")
+        oNewP.Id = ("whatever")
+        Dim oText = document.CreateTextNode("www.java2s.com")
+        oNewP.AppendChild(oText)
+
+        Dim beforeMe = document.GetElementsByTagName("p")(0)
+        document.Body.InsertBefore(oNewP, beforeMe)
+
+
+        Console.WriteLine("Serializing the document again:")
+        Console.WriteLine(document.DocumentElement.OuterHtml)
+
+        'p.ToHtml(writer, mark)
+        WebBrowser1.DocumentText = document.DocumentElement.OuterHtml 'document.Body.OuterHtml
+    End Sub
     Private Sub ProcessListBox()
         ipBX.Text = ""
         Dim count As Integer = (ListBox1.Items.Count - 1)
@@ -116,6 +208,13 @@ Public Class Form1
         Dim app As Outlook.Application = New Outlook.Application()
         'Dim myNamespace As Outlook.NameSpace = app.GetNamespace("MAPI")
         'Dim test = myNamespace.GetDefaultFolder(OlDefaultFolders.olFolderDrafts)
+        Dim config = New Configuration().WithCss()
+        Dim options As New HtmlParserOptions
+
+
+
+        Dim parser = New HtmlParser(config)
+        '.Parse().QuerySelectorAll("img").Css("width", "100%")
 
 
         Dim myMailItem As Outlook.MailItem = app.CreateItem(OlItemType.olMailItem)
@@ -123,8 +222,13 @@ Public Class Form1
         myMailItem.Attachments.Add(theEmail)
         myMailItem.To = "davi2td@gmail.com"
         ' myMailItem.SendUsingAccount("davi2td@gmail.com") 'see https://msdn.microsoft.com/en-us/library/office/ff869311.aspx
+        ' Dim doc As HtmlAgilityPack.HtmlDocument = New HtmlAgilityPack.HtmlDocument
+        'Dim htmlStr As New StringBuilder
 
-        myMailItem.HTMLBody = "<h2><strong><span style=""color: #ff0000;"">This is test</span></strong></h2>"
+
+
+        Dim document = parser.Parse(theEmail.HTMLBody)
+        myMailItem.HTMLBody = " < h2 <> strong <> span style=""color:                #ff0000;"">This is test</span></strong></h2>"
         myMailItem.Save()
         Exit Sub
 
@@ -157,7 +261,7 @@ Public Class Form1
             Dim utils As Excel.Tools.CommonUtils = New Excel.Tools.CommonUtils(excelApplication)
 
             ' add a new workbook
-            Dim contactFile As String = My.Application.Info.DirectoryPath + "\" + IO.Path.GetFileName(ContactsBox.Text)
+            Dim contactFile As String = My.Application.Info.DirectoryPath + "\" + Path.GetFileName(ContactsBox.Text)
             Dim workBook As Excel.Workbook = excelApplication.Workbooks.Open(contactFile, vbNull, True)
             Dim workSheet As Excel.Worksheet = workBook.Worksheets(1)
             Dim ContactsSheet As Excel.Worksheet = workBook.Worksheets(2)
